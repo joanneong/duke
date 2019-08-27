@@ -15,10 +15,14 @@ public class Duke {
     private static String DONE = "done";
     private static String LIST = "list";
     private static String BYE = "bye";
+    private static String TODO = "todo";
+    private static String EVENT = "event";
+    private static String DEADLINE = "deadline";
 
     private static String DONE_MESSAGE = "Nice! I've marked this task as done:";
     private static String LIST_MESSAGE = "Here are the tasks in your list:";
     private static String BYE_MESSAGE = "Bye. Hope to see you again soon!";
+    private static String ADDED_MESSAGE = "Got it. I've added this task:";
 
     private static String INDENTATION = "    ";
 
@@ -46,10 +50,10 @@ public class Duke {
     }
 
     public static void print_list() {
-        System.out.println(LIST_MESSAGE);
+        System.out.println(INDENTATION + LIST_MESSAGE);
         for (int i = 0; i < no_of_commands; i++) {
             Task task = commands[i];
-            System.out.println(i + 1 + ". [" + task.getStatusIcon() + "] " + task.getDescription());
+            System.out.println(INDENTATION + (i + 1) + ". " + task.toString());
         }
     }
 
@@ -59,10 +63,35 @@ public class Duke {
     }
 
     public static void add_command(String command) {
-        Task newTask = new Task(command);
+        String[] splitCommand = command.split(" ");
+        String taskType = splitCommand[0];
+
+        StringBuilder builder = new StringBuilder();
+        for (int i = 1; i < splitCommand.length; i++) {
+            builder.append(splitCommand[i]);
+
+            if (i != splitCommand.length - 1) {
+                builder.append(" ");
+            }
+        }
+        String remainingCommand = builder.toString();
+
+        Task newTask = null;
+        if (taskType.equals(TODO)) {
+            newTask = new Todo(remainingCommand);
+        } else if (taskType.equals(EVENT)) {
+            String[] splitRemaining = remainingCommand.split("/at");
+            newTask = new Event(splitRemaining[0], splitRemaining[1]);
+        } else if (taskType.equals(DEADLINE)) {
+            String[] splitRemaining = remainingCommand.split("/by");
+            newTask = new Deadline(splitRemaining[0], splitRemaining[1]);
+        }
+
         commands[no_of_commands] = newTask;
         no_of_commands++;
-        System.out.println(INDENTATION + "added: " + command);
+        System.out.println(INDENTATION + ADDED_MESSAGE);
+        System.out.println(INDENTATION + newTask.toString());
+        System.out.println(INDENTATION + "Now you have " + no_of_commands + " tasks in the list.");
     }
 
     public static void process_commands() {
