@@ -100,6 +100,7 @@ public class Duke {
         while (true) {
             System.out.println(HORIZONTAL_LINE);
             String command = sc.nextLine();
+            System.out.println(command);
             System.out.println(HORIZONTAL_LINE);
 
             if (command.contains(DONE)) {
