@@ -7,7 +7,7 @@ public class Duke {
         + "| |_| | |_| |   <  __/\n"
         + "|____/ \\__,_|_|\\_\\___|\n";
 
-    private static String HORIZONTAL_LINE = "---------------------------------------------------\n";
+    private static String HORIZONTAL_LINE = "-------------------------------------------------------------\n";
 
     private static String GREETING = "    Hello! I'm Duke\n"
             +  "    What can I do for you?\n";
@@ -23,6 +23,13 @@ public class Duke {
     private static String LIST_MESSAGE = "Here are the tasks in your list:";
     private static String BYE_MESSAGE = "Bye. Hope to see you again soon!";
     private static String ADDED_MESSAGE = "Got it. I've added this task:";
+
+    private static String INVALID_COMMAND = "☹ OOPS!!! I'm sorry, but I don't know what that means :-(";
+    private static String TODO_NO_DESC = "☹ OOPS!!! The description of a todo cannot be empty.";
+    private static String EVENT_NO_DESC = "☹ OOPS!!! The description of an event cannot be empty.";
+    private static String EVENT_NO_DATE = "☹ OOPS!!! The date of an event cannot be empty.";
+    private static String DEADLINE_NO_DESC = "☹ OOPS!!! The description of a deadline cannot be empty.";
+    private static String DEADLINE_NO_DATE = "☹ OOPS!!! The date of a deadline cannot be empty.";
 
     private static String INDENTATION = "    ";
 
@@ -62,7 +69,7 @@ public class Duke {
         System.out.println(HORIZONTAL_LINE);
     }
 
-    public static void add_command(String command) {
+    public static void add_command(String command) throws Exception {
         String[] splitCommand = command.split(" ");
         String taskType = splitCommand[0];
 
@@ -78,12 +85,29 @@ public class Duke {
 
         Task newTask = null;
         if (taskType.equals(TODO)) {
+            if (splitCommand.length <= 1) {
+                throw new DukeException(INDENTATION + TODO_NO_DESC);
+            }
             newTask = new Todo(remainingCommand);
         } else if (taskType.equals(EVENT)) {
+            if (splitCommand.length <= 1) {
+                throw new DukeException(INDENTATION + EVENT_NO_DESC);
+            }
+
             String[] splitRemaining = remainingCommand.split("/at");
+            if (splitRemaining.length < 2) {
+                throw new DukeException(INDENTATION + EVENT_NO_DATE);
+            }
             newTask = new Event(splitRemaining[0], splitRemaining[1]);
         } else if (taskType.equals(DEADLINE)) {
+            if (splitCommand.length <= 1) {
+                throw new DukeException(INDENTATION + DEADLINE_NO_DESC);
+            }
+
             String[] splitRemaining = remainingCommand.split("/by");
+            if (splitRemaining.length < 2) {
+                throw new DukeException(INDENTATION + DEADLINE_NO_DATE);
+            }
             newTask = new Deadline(splitRemaining[0], splitRemaining[1]);
         }
 
@@ -103,15 +127,21 @@ public class Duke {
             System.out.println(command);
             System.out.println(HORIZONTAL_LINE);
 
-            if (command.contains(DONE)) {
-                check_task(command);
-            } else if (command.equals(LIST)) {
-                print_list();
-            } else if (command.equals(BYE)) {
-                print_goodbye();
-                break;
-            } else {
-                add_command(command);
+            try {
+                if (command.contains(DONE)) {
+                    check_task(command);
+                } else if (command.equals(LIST)) {
+                    print_list();
+                } else if (command.equals(BYE)) {
+                    print_goodbye();
+                    break;
+                } else if (command.contains(TODO) || command.contains(EVENT) || command.contains(DEADLINE)) {
+                    add_command(command);
+                } else {
+                    throw new DukeException(INDENTATION + INVALID_COMMAND);
+                }
+            } catch (Exception e) {
+                System.out.println(e.getMessage());
             }
         }
     }
