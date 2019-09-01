@@ -1,3 +1,4 @@
+import java.util.ArrayList;
 import java.util.Scanner;
 
 public class Duke {
@@ -15,6 +16,8 @@ public class Duke {
     private static String DONE = "done";
     private static String LIST = "list";
     private static String BYE = "bye";
+    private static String DELETE = "delete";
+
     private static String TODO = "todo";
     private static String EVENT = "event";
     private static String DEADLINE = "deadline";
@@ -23,6 +26,7 @@ public class Duke {
     private static String LIST_MESSAGE = "Here are the tasks in your list:";
     private static String BYE_MESSAGE = "Bye. Hope to see you again soon!";
     private static String ADDED_MESSAGE = "Got it. I've added this task:";
+    private static String DELETE_MESSAGE = "Noted. I've removed this task:";
 
     private static String INVALID_COMMAND = "☹ OOPS!!! I'm sorry, but I don't know what that means :-(";
     private static String TODO_NO_DESC = "☹ OOPS!!! The description of a todo cannot be empty.";
@@ -30,11 +34,11 @@ public class Duke {
     private static String EVENT_NO_DATE = "☹ OOPS!!! The date of an event cannot be empty.";
     private static String DEADLINE_NO_DESC = "☹ OOPS!!! The description of a deadline cannot be empty.";
     private static String DEADLINE_NO_DATE = "☹ OOPS!!! The date of a deadline cannot be empty.";
+    private static String NO_SUCH_COMMAND = "☹ OOPS!!! No such command exists in the list.";
 
     private static String INDENTATION = "    ";
 
-    private static Task[] commands = new Task[100];
-    private static int no_of_commands = 0;
+    private static ArrayList<Task> commands = new ArrayList<>(100);
 
     public static void greet_user() {
         System.out.println("Hello from\n" + LOGO);
@@ -47,19 +51,19 @@ public class Duke {
         if (splitCommand.length == 2) {
             int idx = Integer.parseInt(splitCommand[1]) - 1;
 
-            if (idx >= 0 && idx < no_of_commands) {
-                commands[idx].markDone();
+            if (idx >= 0 && idx < commands.size()) {
+                commands.get(idx).markDone();
 
                 System.out.println(INDENTATION + DONE_MESSAGE);
-                System.out.println(INDENTATION + "[" + commands[idx].getStatusIcon() + "] " + commands[idx].getDescription());
+                System.out.println(INDENTATION + "[" + commands.get(idx).getStatusIcon() + "] " + commands.get(idx).getDescription());
             }
         }
     }
 
     public static void print_list() {
         System.out.println(INDENTATION + LIST_MESSAGE);
-        for (int i = 0; i < no_of_commands; i++) {
-            Task task = commands[i];
+        for (int i = 0; i < commands.size(); i++) {
+            Task task = commands.get(i);
             System.out.println(INDENTATION + (i + 1) + ". " + task.toString());
         }
     }
@@ -67,6 +71,21 @@ public class Duke {
     public static void print_goodbye() {
         System.out.println(INDENTATION + BYE_MESSAGE);
         System.out.println(HORIZONTAL_LINE);
+    }
+
+    public static void delete_command(String command) throws Exception {
+        String[] splitCommand = command.split(" ");
+        int idx = Integer.parseInt(splitCommand[1]) - 1;
+
+        if (idx < 0 || idx >= commands.size()) {
+            throw new DukeException(INDENTATION + NO_SUCH_COMMAND);
+        }
+
+        Task toRemove = commands.get(idx);
+        commands.remove(idx);
+        System.out.println(DELETE_MESSAGE);
+        System.out.println(INDENTATION + toRemove.toString());
+        System.out.println("Now you have " + commands.size() + " tasks in the list.");
     }
 
     public static void add_command(String command) throws Exception {
@@ -111,11 +130,10 @@ public class Duke {
             newTask = new Deadline(splitRemaining[0], splitRemaining[1]);
         }
 
-        commands[no_of_commands] = newTask;
-        no_of_commands++;
+        commands.add(newTask);
         System.out.println(INDENTATION + ADDED_MESSAGE);
         System.out.println(INDENTATION + newTask.toString());
-        System.out.println(INDENTATION + "Now you have " + no_of_commands + " tasks in the list.");
+        System.out.println(INDENTATION + "Now you have " + commands.size() + " tasks in the list.");
     }
 
     public static void process_commands() {
@@ -135,6 +153,8 @@ public class Duke {
                 } else if (command.equals(BYE)) {
                     print_goodbye();
                     break;
+                } else if (command.contains(DELETE)) {
+                    delete_command(command);
                 } else if (command.contains(TODO) || command.contains(EVENT) || command.contains(DEADLINE)) {
                     add_command(command);
                 } else {
