@@ -1,3 +1,7 @@
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.util.ArrayList;
 import java.util.Scanner;
 
@@ -21,6 +25,9 @@ public class Duke {
     private static String TODO = "todo";
     private static String EVENT = "event";
     private static String DEADLINE = "deadline";
+    private static String TODO_SHORTFORM = "T";
+    private static String EVENT_SHORTFORM = "E";
+    private static String DEADLINE_SHORTFORM = "D";
 
     private static String DONE_MESSAGE = "Nice! I've marked this task as done:";
     private static String LIST_MESSAGE = "Here are the tasks in your list:";
@@ -35,18 +42,84 @@ public class Duke {
     private static String DEADLINE_NO_DESC = "☹ OOPS!!! The description of a deadline cannot be empty.";
     private static String DEADLINE_NO_DATE = "☹ OOPS!!! The date of a deadline cannot be empty.";
     private static String NO_SUCH_COMMAND = "☹ OOPS!!! No such command exists in the list.";
+    private static String INVALID_DATA = "☹ OOPS!!! The data saved/to be saved is invalid.";
 
     private static String INDENTATION = "    ";
+    private static String DATA_DELIMITER = "|";
+    private static String DATA_MARKED_DONE = "1";
+    private static String DATA_MARKED_NOT_DONE = "0";
+
+    private static String DATA_FILE = "data/duke.txt";
 
     private static ArrayList<Task> commands = new ArrayList<>(100);
 
-    public static void greet_user() {
+    public static void loadData() throws Exception {
+        File file = new File(DATA_FILE);
+        file.createNewFile();
+        BufferedReader br = new BufferedReader(new FileReader(file));
+        String input;
+
+        while ((input = br.readLine()) != null) {
+            initialiseCommands(input);
+        }
+    }
+
+    private static void initialiseCommands(String input) throws Exception {
+        String[] toInitialise = input.split("\\" + DATA_DELIMITER);
+        String taskType = toInitialise[0].trim();
+        boolean isDone = toInitialise[1].trim().equals(DATA_MARKED_DONE);
+        String description = toInitialise[2].trim();
+
+        Task newTask;
+        if (taskType.equals(TODO_SHORTFORM)) {
+            newTask = new Todo(description);
+        } else if (taskType.equals(EVENT_SHORTFORM)) {
+            newTask = new Event(description, toInitialise[3]);
+        } else if (taskType.equals(DEADLINE_SHORTFORM)) {
+            newTask = new Deadline(description, toInitialise[3]);
+        } else {
+            throw new DukeException(INDENTATION + INVALID_DATA);
+        }
+
+        if (isDone) {
+            newTask.markDone();
+        }
+
+        commands.add(newTask);
+    }
+
+    private static void saveData() throws Exception {
+        FileWriter fw = new FileWriter(DATA_FILE);
+
+        for (Task task: commands) {
+            String doneStatus = task.isDone ? DATA_MARKED_DONE : DATA_MARKED_NOT_DONE;
+
+            if (task instanceof Todo) {
+                fw.write(TODO_SHORTFORM + DATA_DELIMITER + doneStatus + DATA_DELIMITER
+                        + task.getDescription());
+            } else if (task instanceof Event) {
+                fw.write(EVENT_SHORTFORM + DATA_DELIMITER + doneStatus + DATA_DELIMITER
+                        + task.getDescription() + DATA_DELIMITER + ((Event) task).getAt());
+            } else if (task instanceof Deadline) {
+                fw.write(DEADLINE_SHORTFORM + DATA_DELIMITER + doneStatus + DATA_DELIMITER
+                        + task.getDescription() + DATA_DELIMITER + ((Deadline) task).getBy());
+            } else {
+                throw new DukeException(INDENTATION + INVALID_DATA);
+            }
+
+            fw.write("\n");
+        }
+
+        fw.close();
+    }
+
+    public static void greetUser() {
         System.out.println("Hello from\n" + LOGO);
         System.out.println(HORIZONTAL_LINE);
         System.out.println(GREETING);
     }
 
-    public static void check_task(String command) {
+    public static void checkTask(String command) {
         String[] splitCommand = command.split(" ");
         if (splitCommand.length == 2) {
             int idx = Integer.parseInt(splitCommand[1]) - 1;
@@ -60,7 +133,7 @@ public class Duke {
         }
     }
 
-    public static void print_list() {
+    public static void printList() {
         System.out.println(INDENTATION + LIST_MESSAGE);
         for (int i = 0; i < commands.size(); i++) {
             Task task = commands.get(i);
@@ -68,12 +141,12 @@ public class Duke {
         }
     }
 
-    public static void print_goodbye() {
+    public static void printGoodbye() {
         System.out.println(INDENTATION + BYE_MESSAGE);
         System.out.println(HORIZONTAL_LINE);
     }
 
-    public static void delete_command(String command) throws Exception {
+    public static void deleteCommand(String command) throws Exception {
         String[] splitCommand = command.split(" ");
         int idx = Integer.parseInt(splitCommand[1]) - 1;
 
@@ -88,7 +161,7 @@ public class Duke {
         System.out.println("Now you have " + commands.size() + " tasks in the list.");
     }
 
-    public static void add_command(String command) throws Exception {
+    public static void addCommand(String command) throws Exception {
         String[] splitCommand = command.split(" ");
         String taskType = splitCommand[0];
 
@@ -136,7 +209,7 @@ public class Duke {
         System.out.println(INDENTATION + "Now you have " + commands.size() + " tasks in the list.");
     }
 
-    public static void process_commands() {
+    public static void processCommands() {
         Scanner sc = new Scanner(System.in);
 
         while (true) {
@@ -147,16 +220,19 @@ public class Duke {
 
             try {
                 if (command.contains(DONE)) {
-                    check_task(command);
+                    checkTask(command);
+                    saveData();
                 } else if (command.equals(LIST)) {
-                    print_list();
+                    printList();
                 } else if (command.equals(BYE)) {
-                    print_goodbye();
+                    printGoodbye();
                     break;
                 } else if (command.contains(DELETE)) {
-                    delete_command(command);
+                    deleteCommand(command);
+                    saveData();
                 } else if (command.contains(TODO) || command.contains(EVENT) || command.contains(DEADLINE)) {
-                    add_command(command);
+                    addCommand(command);
+                    saveData();
                 } else {
                     throw new DukeException(INDENTATION + INVALID_COMMAND);
                 }
@@ -167,7 +243,12 @@ public class Duke {
     }
 
     public static void main(String[] args) {
-        greet_user();
-        process_commands();
+        try {
+            loadData();
+            greetUser();
+            processCommands();
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
     }
 }
